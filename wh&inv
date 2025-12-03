@@ -197,14 +197,7 @@ const InventoryManagement = () => `
 
 const openEditProductModal = (productIndex) => {
     const products = [
-        { id: 'PROD-1001', name: 'Widget Alpha 1', quantity: 140, location: 'Aisle-01 / Shelf-C', category: 'Electronics', reorderPoint: 50, price: 29.99 },
-        { id: 'PROD-1002', name: 'Widget Alpha 2', quantity: 130, location: 'Aisle-02 / Shelf-C', category: 'Electronics', reorderPoint: 50, price: 34.99 },
-        { id: 'PROD-1003', name: 'Widget Alpha 3', quantity: 120, location: 'Aisle-03 / Shelf-C', category: 'Hardware', reorderPoint: 60, price: 24.99 },
-        { id: 'PROD-1004', name: 'Widget Alpha 4', quantity: 110, location: 'Aisle-04 / Shelf-C', category: 'Electronics', reorderPoint: 45, price: 39.99 },
-        { id: 'PROD-1005', name: 'Widget Alpha 5', quantity: 100, location: 'Aisle-05 / Shelf-C', category: 'Hardware', reorderPoint: 55, price: 19.99 },
-        { id: 'PROD-1006', name: 'Widget Alpha 6', quantity: 90, location: 'Aisle-06 / Shelf-C', category: 'Electronics', reorderPoint: 50, price: 44.99 },
-        { id: 'PROD-1007', name: 'Widget Alpha 7', quantity: 80, location: 'Aisle-07 / Shelf-C', category: 'Hardware', reorderPoint: 65, price: 14.99 },
-        { id: 'PROD-1008', name: 'Widget Alpha 8', quantity: 70, location: 'Aisle-08 / Shelf-C', category: 'Electronics', reorderPoint: 40, price: 49.99 }
+        { id: 'PROD-1001', name: 'Widget Alpha 1', quantity: 140, location: 'Aisle-01 / Shelf-C', category: 'Electronics', reorderPoint: 50, price: 29.99 }
     ];
     setState({ showEditProductModal: true, editingProduct: products[productIndex] });
 };
@@ -221,10 +214,7 @@ const handleEditProduct = () => {
 
 const openEditUserModal = (userIndex) => {
     const users = [
-        { firstName: 'User', lastName: '1', email: 'admin@0.com', role: 'Admin' },
-        { firstName: 'User', lastName: '2', email: 'manager@1.com', role: 'Manager' },
-        { firstName: 'User', lastName: '3', email: 'staff@2.com', role: 'Staff' },
-        { firstName: 'User', lastName: '4', email: 'staff@3.com', role: 'Staff' }
+        { firstName: 'User', lastName: '1', email: 'admin@0.com', role: 'Admin' }
     ];
     setState({ showEditUserModal: true, editingUser: users[userIndex] });
 };
@@ -244,7 +234,7 @@ const ReportsAndAnalytics = () => `
     ${PageHeader('FileText', 'Reports & Analytics')}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         ${ReportCard("Inventory Level Report", "Current stock, value, and reorder status.")}
-        ${ReportCard("Product Movement History", "Trace items by date, location, and personnel (Req. 6).")}
+        ${ReportCard("Product Movement History", "Trace items by date, and personnel.")}
         ${ReportCard("Transaction Summary", "Detailed log of all receipt, transfer, and dispatch transactions.")}
     </div>
 `;
@@ -652,3 +642,4 @@ const handleLoginSubmit = (e) => {
 window.onload = () => {
     renderApp();
 };
+
