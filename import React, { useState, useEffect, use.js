@@ -1,675 +1,654 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { LogOut, LayoutDashboard, Package, Warehouse, Users, FileText, ShoppingCart, Search, Bell, ArrowLeft } from 'lucide-react';
-
-const API_BASE_URL = "";
-const API_KEY = ""; 
-
-const useAuth = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [role, setRole] = useState('Staff');
-    const [isLoading, setIsLoading] = useState(false); 
-
-    useEffect(() => {
-        setIsLoading(false); 
-    }, []);
-
-    const login = useCallback((userRole) => {
-        setIsLoading(true);
-        setTimeout(() => {
-            setRole(userRole);
-            setIsAuthenticated(true);
-            setIsLoading(false);
-        }, 300);
-    }, []);
-
-    const logout = useCallback(() => {
-        setIsAuthenticated(false);
-        setRole(null);
-    }, []);
-
-    return { isAuthenticated, role, isLoading, login, logout };
+let state = {
+    isAuthenticated: false,
+    role: '',
+    currentPage: 'login',
+    isLoading: false,
+    analysisText: '',
+    showAddProductModal: false,
+    showEditProductModal: false,
+    editingProduct: null,
+    showAddUserModal: false,
+    showEditUserModal: false,
+    editingUser: null,
+    sidebarOpen: true,
 };
 
-const PageHeader = ({ icon: Icon, title, description, role }) => (
-    <div className="flex items-start justify-between p-4 bg-white shadow-lg rounded-xl mb-6 border-b-4 border-indigo-500">
-        <div className="flex items-center">
-            <div className="p-3 mr-4 bg-indigo-100 rounded-full text-indigo-600">
-                <Icon size={24} />
+const createElement = (tag, classes, innerHTML = '', attributes = {}) => {
+    const el = document.createElement(tag);
+    if (classes) el.className = classes;
+    if (innerHTML) el.innerHTML = innerHTML;
+    for (const key in attributes) {
+        el.setAttribute(key, attributes[key]);
+    }
+    return el;
+};
+
+const setState = (newState) => {
+    state = { ...state, ...newState };
+    renderApp();
+};
+
+const login = (userRole) => {
+    setState({ isLoading: true });
+    setTimeout(() => {
+        setState({ role: userRole, isAuthenticated: true, currentPage: 'dashboard', isLoading: false });
+    }, 300);
+};
+
+const logout = () => {
+    setState({ isAuthenticated: false, role: '', currentPage: 'login' });
+};
+
+const Icon = (name, size = 24) => {
+    const icons = {
+        'LayoutDashboard': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h18"/><path d="M10 3v18"/></svg>`,
+        'Package': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4l4.6 -4.6"/><path d="M12.4 12.4l -4.4 4.4l -2.6 -2.6l4.6 -4.6"/><path d="M2 12l5.4 -5.4l2.6 2.6l -5.6 5.6"/><path d="M14.5 12.5l -4.5 4.5"/><path d="M20 7l -4 4"/><path d="M5 20l4.5 -4.5"/></svg>`,
+        'Warehouse': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.4V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.4l8-4.6a2 2 0 0 1 4 0l8 4.6z"/><path d="M2 13h20"/><path d="M12 22V13"/><path d="M6 22v-4"/><path d="M18 22v-4"/></svg>`,
+        'Users': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+        'FileText': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>`,
+        'ShoppingCart': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2.68l.21 1.76a2 2 0 0 0 1.96 1.68h11.75a2 2 0 0 0 1.96-1.68L21 6"/><path d="M16 16H5.43c-.48 0-.91-.32-1.07-.79L2 4"/><path d="M16 16V9"/></svg>`,
+        'LogOut': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`,
+        'Bell': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+        'ArrowLeft': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>`,
+        'Menu': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M3 6h18"/><path d="M3 18h18"/></svg>`,
+        'X': `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>`,
+    };
+    return icons[name] || '';
+};
+
+const NavButton = (id, label, iconName) => {
+    const isActive = state.currentPage === id;
+    const activeClass = 'bg-indigo-600 text-white shadow-md';
+    const inactiveClass = 'text-indigo-200 hover:bg-indigo-700/50 hover:text-white';
+    
+    return `
+        <button 
+            onclick="setState({ currentPage: '${id}' })"
+            class="flex items-center w-full px-4 py-3 my-1 transition-all duration-200 rounded-lg group ${isActive ? activeClass : inactiveClass}"
+        >
+            ${Icon(iconName, 20)}
+            <span class="font-medium text-sm ml-3">${label}</span>
+        </button>
+    `;
+};
+
+const PageHeader = (iconName, title, description) => `
+    <div class="flex items-start justify-between p-4 bg-white shadow-lg rounded-xl mb-6 border-b-4 border-indigo-500">
+        <div class="flex items-center">
+            <div class="p-3 mr-4 bg-indigo-100 rounded-full text-indigo-600">
+                ${Icon(iconName, 24)}
             </div>
             <div>
-                <h1 className="text-2xl font-semibold text-gray-800">{title}</h1>
-                <p className="text-sm text-gray-500">{description}</p>
+                <h1 class="text-2xl font-semibold text-gray-800">${title}</h1>
+                <p class="text-sm text-gray-500">${description}</p>
             </div>
         </div>
-        <div className="px-3 py-1 text-xs font-medium text-white bg-indigo-500 rounded-full shadow-md self-center">
-            Role: {role}
+        <div class="px-3 py-1 text-xs font-medium text-white bg-indigo-500 rounded-full shadow-md self-center">
+            ${state.role}
         </div>
     </div>
-);
+`;
 
-const NavButton = ({ icon: Icon, label, isActive, onClick }) => (
-    <button
-        onClick={onClick}
-        className={`flex items-center w-full px-4 py-3 my-1 transition-all duration-200 rounded-lg group ${
-            isActive
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-indigo-200 hover:bg-indigo-700/50 hover:text-white'
-        }`}
-    >
-        <Icon size={20} className="mr-3 transition-transform group-hover:scale-110" />
-        <span className="font-medium text-sm">{label}</span>
-    </button>
-);
+const Dashboard = () => {
+   
+    const staticAnalysis = `
+        <p class="text-base leading-relaxed"><strong>Inventory Accuracy:</strong></p>
+        <p class="text-base leading-relaxed"><strong>Order Fulfillment Rate:</strong></p>
+        <p class="text-base leading-relaxed"><strong>Top Alert:</strong> 30 products below reorder point.</p>
+    `;
 
-const Dashboard = ({ role }) => {
-    const [analysis, setAnalysis] = useState('Loading key metrics and alerts...');
-
-    const fetchAnalysis = useCallback(async () => {
-        if (!API_KEY) {
-            setAnalysis(
-                'Inventory \n' +
-                'Order Rate \n' +
-                'Top Alert.'
-            );
-            return;
-        }
-
-        const userQuery = `Generate a concise summary of three key performance indicators (KPIs) for a modern warehouse management system dashboard: Inventory Accuracy, Order Fulfillment Rate, and Top Alert (e.g., "30 products below reorder point"). Format it for a manager's quick review.`;
-        
-        try {
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                tools: [{ "google_search": {} }],
-            };
-
-            // Using exponential backoff for robustness
-            for (let attempt = 0; attempt < 3; attempt++) {
-                const response = await fetch(`${API_BASE_URL}?key=${API_KEY}`, { // Include API key in URL for fetch
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (response.status === 429 && attempt < 2) {
-                    await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
-                    continue; // Retry
-                }
-
-                if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
-
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "Analysis failed to load.";
-                setAnalysis(text);
-                return;
-            }
-        } catch (error) {
-            console.error("Error fetching analysis:", error);
-            setAnalysis('Failed to fetch real-time analysis due to API error. Using mock data.');
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchAnalysis();
-    }, [fetchAnalysis]);
-
-    return (
-        <>
-            <PageHeader icon={LayoutDashboard} title="WMS Dashboard" description="Real-time status, key metrics, and immediate alerts." role={role} />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 bg-white p-6 rounded-xl shadow-lg">
-                    <h2 className="text-xl font-semibold text-gray-700 mb-4">Key Performance Indicators (KPIs)</h2>
-                    <div className="text-gray-600 space-y-3">
-                        {analysis.split('\n').map((line, index) => (
-                            <p key={index} className="text-base leading-relaxed">{line}</p>
-                        ))}
-                        {!API_KEY && (
-                            <p className="text-red-500 pt-2 text-sm italic">
-                                Note: API_KEY is missing. Mock data on display.
-                            </p>
-                        )}
-                    </div>
-                </div>
-                <AlertsPanel />
+    const alertsPanel = `
+        <div class="bg-white p-6 rounded-xl shadow-lg border border-red-200">
+            <div class="flex items-center text-red-600 mb-4">
+                ${Icon('Bell', 20)}
+                <h2 class="text-xl font-semibold ml-2">Notifications & Alerts (Req. 7)</h2>
             </div>
-            <div className="mt-6 p-6 bg-white rounded-xl shadow-lg">
-                <h2 className="text-xl font-semibold text-gray-700 mb-4">Visual Analytics (Req. 5)</h2>
-                <div className="h-64 flex items-center justify-center text-gray-400 border border-dashed rounded-lg">
-                    [Placeholder for Charts: Inventory by Category, Fulfillment Trend]
+            <ul class="space-y-3 text-sm">
+                <li class="p-3 bg-red-50 rounded-lg border-l-4 border-red-500 text-red-700">
+                    ⚠️ Low Stock: 5 SKUs critically low.
+                </li>
+                <li class="p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-500 text-yellow-700">
+                    ⏳ Shipment: 2 high-priority orders pending pick.
+                </li>
+                <li class="p-3 bg-indigo-50 rounded-lg border-l-4 border-indigo-500 text-indigo-700">
+                    🗓️ Reminder: Q2 Cycle Count is due tomorrow.
+                </li>
+            </ul>
+        </div>
+    `;
+
+    return `
+        ${PageHeader('LayoutDashboard', 'WMS Dashboard', 'Real-time status, key metrics, and immediate alerts.')}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="md:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Key Performance Indicators</h2>
+                <div class="text-gray-600 space-y-3">
+                    ${staticAnalysis}
                 </div>
             </div>
-        </>
-    );
+            ${alertsPanel}
+        </div>
+        <div class="mt-6 p-6 bg-white rounded-xl shadow-lg">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Visual Analytics</h2>
+            <div class="h-64 flex items-center justify-center text-gray-400 border border-dashed rounded-lg">
+                [Placeholder for Charts]
+            </div>
+        </div>
+    `;
 };
 
-const InventoryManagement = ({ role }) => (
-    <>
-        <PageHeader icon={Package} title="Inventory Control" description="Manage product details, stock levels, and locations (Req. 2, 6)." role={role} />
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Product Catalog (CRUD & Search)</h2>
-            <div className="flex justify-between mb-4">
-                <input
-                    type="text"
-                    placeholder="Search by ID, Name, or Category (Req. 6)"
-                    className="p-2 border border-gray-300 rounded-lg w-1/3 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-150 shadow-md">
-                    + Add New Product
-                </button>
-            </div>
-            <div className="h-96 overflow-y-auto border rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3"></th>
+const InventoryManagement = () => `
+    <div class="bg-white p-6 rounded-xl shadow-lg">
+        <h2 class="text-xl font-semibold text-gray-700 mb-4">Product Catalog</h2>
+        <div class="flex justify-between mb-4">
+            <input
+                type="text"
+                placeholder="Search by ID, Name, or Category"
+                class="p-2 border border-gray-300 rounded-lg w-1/3 focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            <button onclick="setState({showAddProductModal: true})" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition duration-150 shadow-md">
+                + Add New Product
+            </button>
+        </div>
+        <div class="h-96 overflow-y-auto border rounded-lg">
+            <table class="min-w-full divide-y divide-gray-200 wms-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    ${[1, 2, 3, 4, 5, 6, 7, 8].map(i => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PROD-${1000 + i}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Widget Alpha ${i}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${150 - i * 10}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-semibold text-green-600">$${(20 + i * 5).toFixed(2)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Aisle-0${i} / Shelf-C</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${i % 3 === 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
+                                    ${i % 3 === 0 ? 'Low Stock' : 'In Stock'}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button onclick="openEditProductModal(${i})" class="text-indigo-600 hover:text-indigo-900 ml-2">Edit</button>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                            <tr key={i} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">PROD-{1000 + i}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Widget Alpha {i}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{150 - i * 10}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Aisle-0{i} / Shelf-C</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${i % 3 === 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                                        {i % 3 === 0 ? 'Low Stock' : 'In Stock'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button className="text-indigo-600 hover:text-indigo-900 ml-2">Edit</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    `).join('')}
+                </tbody>
+            </table>
         </div>
-    </>
-);
-
-const OperationsManagement = ({ role }) => (
-    <>
-        <PageHeader icon={Warehouse} title="Warehouse Operations" description="Manage inbound receiving, outbound picking, and real-time movement." role={role} />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <OperationCard title="Inbound Receiving" icon="📥" color="bg-blue-100 text-blue-800" buttonText="Start Receiving">
-                System records product receipt, updates inventory, and facilitates location assignment.
-            </OperationCard>
-            <OperationCard title="Outbound Fulfillment" icon="📤" color="bg-red-100 text-red-800" buttonText="Process Orders">
-                Supports picking, packing, and shipping processes. Optimizes retrieval paths.
-            </OperationCard>
-        </div>
-        <div className="mt-6 bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Product Movement Tracking</h2>
-            <p className="text-gray-500">Real-time recording of product movement to minimize delays and provide full traceability.</p>
-            <div className="h-40 flex items-center justify-center text-gray-400 border border-dashed rounded-lg mt-4">
-                [Placeholder: Live map of storage locations or movement timeline]
-            </div>
-        </div>
-    </>
-);
-
-const OperationCard = ({ title, icon, color, buttonText, children }) => (
-    <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col justify-between">
-        <div>
-            <div className={`w-12 h-12 ${color} rounded-full flex items-center justify-center text-2xl mb-4`}>
-                {icon}
-            </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
-            <p className="text-gray-600 text-sm mb-4">{children}</p>
-        </div>
-        <button className="w-full bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md">
-            {buttonText}
-        </button>
     </div>
-);
+    ${state.showAddProductModal ? Modal('Add New Product', AddProductForm(), `
+        <button onclick="setState({showAddProductModal: false})" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-150">Cancel</button>
+        <button onclick="handleAddProduct()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-150">Add Product</button>
+    `) : ''}
+    ${state.showEditProductModal ? Modal('Edit Product', EditProductForm(state.editingProduct), `
+        <button onclick="setState({showEditProductModal: false, editingProduct: null})" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-150">Cancel</button>
+        <button onclick="handleEditProduct()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-150">Save Changes</button>
+    `) : ''}
+`;
 
-const OrderManagement = ({ role }) => (
-    <>
-        <PageHeader icon={ShoppingCart} title="Order & Shipment Management" description="Record, process, and track customer orders from confirmation to delivery (Req. 4)." role={role} />
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Customer Orders List</h2>
-            <div className="h-96 overflow-y-auto border rounded-lg">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shipment Tracking</th>
-                            <th className="px-6 py-3"></th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {[101, 102, 103, 104, 105].map(id => (
-                            <tr key={id} className="hover:bg-gray-50">
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">ORD-{id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Customer {id} Corp.</td>
-                                <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${id % 2 === 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
-                                        {id % 2 === 0 ? 'In Picking' : 'Dispatched'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">TRK-{Math.floor(Math.random() * 90000) + 10000}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <button className="text-indigo-600 hover:text-indigo-900 ml-2">View Receipt</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </>
-);
+const openEditProductModal = (productIndex) => {
+    const products = [
+        { id: 'PROD-1001', name: 'Widget Alpha 1', quantity: 140, location: 'Aisle-01 / Shelf-C', category: 'Electronics', reorderPoint: 50, price: 29.99 },
+        { id: 'PROD-1002', name: 'Widget Alpha 2', quantity: 130, location: 'Aisle-02 / Shelf-C', category: 'Electronics', reorderPoint: 50, price: 34.99 },
+        { id: 'PROD-1003', name: 'Widget Alpha 3', quantity: 120, location: 'Aisle-03 / Shelf-C', category: 'Hardware', reorderPoint: 60, price: 24.99 },
+        { id: 'PROD-1004', name: 'Widget Alpha 4', quantity: 110, location: 'Aisle-04 / Shelf-C', category: 'Electronics', reorderPoint: 45, price: 39.99 },
+        { id: 'PROD-1005', name: 'Widget Alpha 5', quantity: 100, location: 'Aisle-05 / Shelf-C', category: 'Hardware', reorderPoint: 55, price: 19.99 },
+        { id: 'PROD-1006', name: 'Widget Alpha 6', quantity: 90, location: 'Aisle-06 / Shelf-C', category: 'Electronics', reorderPoint: 50, price: 44.99 },
+        { id: 'PROD-1007', name: 'Widget Alpha 7', quantity: 80, location: 'Aisle-07 / Shelf-C', category: 'Hardware', reorderPoint: 65, price: 14.99 },
+        { id: 'PROD-1008', name: 'Widget Alpha 8', quantity: 70, location: 'Aisle-08 / Shelf-C', category: 'Electronics', reorderPoint: 40, price: 49.99 }
+    ];
+    setState({ showEditProductModal: true, editingProduct: products[productIndex] });
+};
 
-const ReportsAndAnalytics = ({ role }) => (
-    <>
-        <PageHeader icon={FileText} title="Reports & Analytics" description="Generate detailed reports and analyze warehouse performance (Req. 5)." role={role} />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <ReportCard title="Inventory Level Report" description="Current stock, value, and reorder status." />
-            <ReportCard title="Product Movement History" description="Trace items by date, location, and personnel (Req. 6)." />
-            <ReportCard title="Transaction Summary" description="Detailed log of all receipt, transfer, and dispatch transactions." />
-        </div>
-    </>
-);
+const handleAddProduct = () => {
+    alert('Product added successfully!');
+    setState({ showAddProductModal: false });
+};
 
-const ReportCard = ({ title, description }) => (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
-        <p className="text-gray-500 text-sm mb-4">{description}</p>
-        <button className="w-full bg-pink-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-pink-600 transition duration-150">
+const handleEditProduct = () => {
+    alert('Product updated successfully!');
+    setState({ showEditProductModal: false, editingProduct: null });
+};
+
+const openEditUserModal = (userIndex) => {
+    const users = [
+        { firstName: 'User', lastName: '1', email: 'admin@0.com', role: 'Admin' },
+        { firstName: 'User', lastName: '2', email: 'manager@1.com', role: 'Manager' },
+        { firstName: 'User', lastName: '3', email: 'staff@2.com', role: 'Staff' },
+        { firstName: 'User', lastName: '4', email: 'staff@3.com', role: 'Staff' }
+    ];
+    setState({ showEditUserModal: true, editingUser: users[userIndex] });
+};
+
+const handleAddUser = () => {
+    alert('User added successfully!');
+    setState({ showAddUserModal: false });
+};
+
+const handleEditUser = () => {
+    alert('User updated successfully!');
+    setState({ showEditUserModal: false, editingUser: null });
+};
+
+
+const ReportsAndAnalytics = () => `
+    ${PageHeader('FileText', 'Reports & Analytics')}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        ${ReportCard("Inventory Level Report", "Current stock, value, and reorder status.")}
+        ${ReportCard("Product Movement History", "Trace items by date, location, and personnel (Req. 6).")}
+        ${ReportCard("Transaction Summary", "Detailed log of all receipt, transfer, and dispatch transactions.")}
+    </div>
+`;
+
+const ReportCard = (title, description) => `
+    <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">${title}</h3>
+        <p class="text-gray-500 text-sm mb-4">${description}</p>
+        <button class="w-full bg-pink-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-pink-600 transition duration-150">
             Generate Report
         </button>
     </div>
-);
+`;
 
-const AdminUserManagement = ({ role }) => (
-    <>
-        <PageHeader icon={Users} title="User & Access Management" description="Create, update, and manage user roles and accounts (Req. 1)." role={role} />
-        {role === 'Admin' ? (
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-                <h2 className="text-xl font-semibold text-gray-700 mb-4">User Accounts (CRUD)</h2>
-                <div className="flex justify-end mb-4">
-                    <button className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md">
-                        + Add New User
-                    </button>
-                </div>
-                <div className="h-96 overflow-y-auto border rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50 sticky top-0">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                                <th className="px-6 py-3"></th>
+const AdminUserManagement = () => {
+    const content = state.role === 'Admin' ? `
+        <div class="bg-white p-6 rounded-xl shadow-lg">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">User Accounts (CRUD)</h2>
+            <div class="flex justify-end mb-4">
+                <button onclick="setState({showAddUserModal: true})" class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 transition duration-150 shadow-md">+ Add New User</button>
+            </div>
+            <div class="h-96 overflow-y-auto border rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200 wms-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        ${['Admin', 'Manager', 'Staff', 'Staff'].map((r, i) => `
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">User ${i+1}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${r.toLowerCase()}@${i}.com</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${r}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button class="text-red-600 hover:text-red-900 ml-2">Remove</button>
+                                    <button onclick="openEditUserModal(${i})" class="text-indigo-600 hover:text-indigo-900 ml-2">Edit</button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {['Admin', 'Manager', 'Staff', 'Staff'].map((r, i) => (
-                                <tr key={i} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">User {i+1}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{r.toLowerCase()}@{i}.com</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{r}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button className="text-red-600 hover:text-red-900 ml-2">Remove</button>
-                                        <button className="text-indigo-600 hover:text-indigo-900 ml-2">Edit</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        ) : (
-            <div className="p-10 text-center bg-yellow-50 rounded-xl border border-yellow-200 text-yellow-800">
-                <p className="font-semibold">Access Denied</p>
-                <p className="text-sm">You must have an Admin role to view and manage users.</p>
-            </div>
-        )}
-    </>
-);
-
-const AlertsPanel = () => (
-    <div className="bg-white p-6 rounded-xl shadow-lg border border-red-200">
-        <div className="flex items-center text-red-600 mb-4">
-            <Bell size={20} className="mr-2 fill-red-100" />
-            <h2 className="text-xl font-semibold">Notifications & Alerts</h2>
-        </div>
-        <ul className="space-y-3 text-sm">
-            <li className="p-3 bg-red-50 rounded-lg border-l-4 border-red-500 text-red-700">
-                ⚠️ Low Stocks
-            </li>
-            <li className="p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-500 text-yellow-700">
-                ⏳ Delays
-            </li>
-            <li className="p-3 bg-indigo-50 rounded-lg border-l-4 border-indigo-500 text-indigo-700">
-                🗓️ Reminders
-            </li>
-        </ul>
-    </div>
-);
-
-const LoginPage = ({ login }) => {
-    const [isRegistering, setIsRegistering] = useState(false);
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-
-    const [regName, setRegName] = useState('');
-    const [regEmail, setRegEmail] = useState('');
-    const [regAddress, setRegAddress] = useState('');
-    const [regPassword, setRegPassword] = useState('');
-    const [regPosition, setRegPosition] = useState('Staff'); 
-
-    const handleLogin = (e) => {
-        e.preventDefault();
-        setError('');
-
-        if (username === 'admin' && password === '123') {
-            login('Admin');
-        } else if (username === 'manager' && password === '123') {
-            login('Manager');
-        } else if (username === 'staff' && password === '123') {
-            login('Staff');
-        } else {
-            setError('Invalid credentials. Try "admin", "manager", or "staff" with password "123".');
-        }
-    };
-
-    const handleRegister = (e) => {
-        e.preventDefault();
-        setError('');
-        
-        if (!regName || !regEmail || !regAddress || !regPosition || !regPassword) {
-            setError('Please fill out all registration fields.');
-            return;
-        }
-        
-        login(regPosition); 
-        
-        setRegName('');
-        setRegEmail('');
-        setRegAddress('');
-        setRegPassword('');
-        setRegPosition('Staff');
-        setIsRegistering(false);
-    };
-
-    const renderLoginForm = () => (
-        <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-                <label className="block text-sm font-medium text-gray-700">
-                    Username
-                </label>
-                <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                    placeholder="e.g., admin, manager, staff"
-                />
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-700">
-                    Password
-                </label>
-                <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                    placeholder="Password"
-                />
-            </div>
-            {error && (
-                <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm border border-red-300">
-                    {error}
-                </div>
-            )}
-            <button
-                type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200"
-            >
-                Sign In
-            </button>
-            <button
-                type="button"
-                onClick={() => { setIsRegistering(true); setError(''); }}
-                className="w-full text-center py-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition duration-200 border-t pt-4 mt-6"
-            >
-                Need an account? Create one here.
-            </button>
-        </form>
-    );
-
-    const renderRegisterForm = () => (
-        <form onSubmit={handleRegister} className="space-y-4">
-            <button
-                type="button"
-                onClick={() => { setIsRegistering(false); setError(''); }}
-                className="flex items-center text-sm font-medium text-gray-500 hover:text-indigo-600 mb-4 transition duration-150"
-            >
-                <ArrowLeft size={16} className="mr-1" /> Back to Sign In
-            </button>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Full Name
-                    </label>
-                    <input
-                        type="text"
-                        value={regName}
-                        onChange={(e) => setRegName(e.target.value)}
-                        required
-                        className="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="John Doe"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Email (for login)
-                    </label>
-                    <input
-                        type="email"
-                        value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
-                        required
-                        className="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="john@wms.com"
-                    />
-                </div>
-            </div>
-            <div>
-                <label className="block text-sm font-medium text-gray-700">
-                    Address / Location
-                </label>
-                <input
-                    type="text"
-                    value={regAddress}
-                    onChange={(e) => setRegAddress(e.target.value)}
-                    required
-                    className="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="123 Warehouse St."
-                />
-            </div>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Position / Role
-                    </label>
-                    <select
-                        value={regPosition}
-                        onChange={(e) => setRegPosition(e.target.value)}
-                        required
-                        className="mt-1 w-full p-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                        <option value="Staff">Staff (Operations)</option>
-                        <option value="Manager">Manager (Inventory/Orders)</option>
-                        <option value="Admin">Admin (Full Access)</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                        Set Password
-                    </label>
-                    <input
-                        type="password"
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        required
-                        className="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="Choose a password"
-                    />
-                </div>
-            </div>
-            
-            {error && (
-                <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm border border-red-300">
-                    {error}
-                </div>
-            )}
-
-            <button
-                type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200 mt-6"
-            >
-                Create Account & Sign In
-            </button>
-        </form>
-    );
-
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-            <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-2xl">
-                <h2 className="text-3xl font-extrabold text-center text-gray-900 mb-6">
-                    {isRegistering ? 'WMS Account Registration' : 'WMS Secure Login'}
-                </h2>
-                <p className="text-sm text-center text-gray-500 mb-8">
-                    {isRegistering 
-                        ? 'Enter your details to create your system access.'
-                        : 'Enter your credentials to access the system.'
-                    }
-                </p>
-                
-                {isRegistering ? renderRegisterForm() : renderLoginForm()}
-                
-                <p className="mt-6 text-xs text-center text-gray-500">
-                    {isRegistering 
-                        ? '*New accounts are simulated for this demo and grant immediate access.'
-                        : '*This demo uses fixed login credentials (admin/manager/staff, pass: 123) or try the registration page.'
-                    }
-                </p>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
         </div>
-    );
+        ${state.showAddUserModal ? Modal('Add New User', AddUserForm(), `
+            <button onclick="setState({showAddUserModal: false})" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-150">Cancel</button>
+            <button onclick="handleAddUser()" class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition duration-150">Add User</button>
+        `) : ''}
+        ${state.showEditUserModal ? Modal('Edit User', EditUserForm(state.editingUser), `
+            <button onclick="setState({showEditUserModal: false, editingUser: null})" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition duration-150">Cancel</button>
+            <button onclick="handleEditUser()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition duration-150">Save Changes</button>
+        `) : ''}
+    ` : `
+        <div class="p-10 text-center bg-yellow-50 rounded-xl border border-yellow-200 text-yellow-800">
+            <p class="font-semibold">Access Denied</p>
+            <p class="text-sm">You must have an Admin role to view and manage users.</p>
+        </div>
+    `;
+    return `
+        ${content}
+    `;
 };
 
-const App = () => {
-    const { isAuthenticated, role, isLoading, login, logout } = useAuth();
-    const [currentPage, setCurrentPage] = useState('dashboard');
+const LoginPage = () => {
+    return `
+        <div class="fixed inset-0 flex items-center justify-center bg-gray-100 p-4">
+            <div class="max-w-md w-full bg-white p-8 rounded-xl shadow-2xl">
+                <h2 class="text-3xl font-extrabold text-center text-gray-900 mb-6">
+                    Log In
+                </h2>
+                
+                <form id="login-form" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Username
+                        </label>
+                        <input
+                            type="text"
+                            id="username"
+                            required
+                            class="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                            placeholder="Username"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            required
+                            class="mt-1 w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                            placeholder="Password"
+                        />
+                    </div>
+                    <div id="login-error" class="p-3 bg-red-100 text-red-700 rounded-lg text-sm border border-red-300 hidden"></div>
+                    <button
+                        type="submit"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-lg text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200"
+                    >
+                        Sign In
+                    </button>
+                </form>
+        
+            </div>
+        </div>
+    `;
+};
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            setCurrentPage('dashboard');
-        } else {
-            setCurrentPage('login');
-        }
-    }, [isAuthenticated]);
+const Modal = (title, content, actions = '') => `
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+                <h2 class="text-2xl font-semibold text-gray-800">${title}</h2>
+                <button onclick="setState({showAddProductModal: false, showEditProductModal: false, editingProduct: null, showAddUserModal: false, showEditUserModal: false, editingUser: null})" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="p-6">
+                ${content}
+            </div>
+            <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 flex justify-end gap-3">
+                ${actions}
+            </div>
+        </div>
+    </div>
+`;
 
-    const navItems = useMemo(() => [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Admin', 'Manager', 'Staff'] },
-        { id: 'inventory', label: 'Inventory Management', icon: Package, roles: ['Admin', 'Manager', 'Staff'] },
-        { id: 'orders', label: 'Order Management', icon: ShoppingCart, roles: ['Admin', 'Manager', 'Staff'] },
-        { id: 'operations', label: 'Warehouse Operations', icon: Warehouse, roles: ['Admin', 'Manager', 'Staff'] },
-        { id: 'reports', label: 'Reports & Analytics', icon: FileText, roles: ['Admin', 'Manager'] },
-        { id: 'admin', label: 'User Management', icon: Users, roles: ['Admin'] },
-    ], []);
+const AddProductForm = () => `
+    <form id="add-product-form" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Product ID</label>
+                <input type="text" id="product_id" placeholder="e.g., PROD-2001" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+                <input type="text" id="product_name" placeholder="e.g., Widget Alpha" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <input type="text" id="category" placeholder="e.g., Electronics" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                <input type="number" id="quantity" placeholder="0" min="0" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <input type="text" id="location" placeholder="e.g., Aisle-01/Shelf-C" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Reorder Point</label>
+                <input type="number" id="reorder_point" placeholder="0" min="0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Unit Price</label>
+            <input type="number" id="unit_price" placeholder="0.00" min="0" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+        </div>
+    </form>
+`;
 
-    const filteredNavItems = navItems.filter(item => item.roles.includes(role));
+const EditProductForm = (product) => `
+    <form id="edit-product-form" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Product ID</label>
+                <input type="text" id="product_id" value="${product.id}" readonly class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+                <input type="text" id="product_name" value="${product.name}" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <input type="text" id="category" value="${product.category}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                <input type="number" id="quantity" value="${product.quantity}" min="0" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <input type="text" id="location" value="${product.location}" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Reorder Point</label>
+                <input type="number" id="reorder_point" value="${product.reorderPoint}" min="0" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Unit Price</label>
+            <input type="number" id="unit_price" value="${product.price}" min="0" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+        </div>
+    </form>
+`;
 
-    const renderContent = () => {
-        if (isLoading) {
-            return (
-                <div className="flex items-center justify-center h-full min-h-screen">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                </div>
-            );
-        }
+const AddUserForm = () => `
+    <form id="add-user-form" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                <input type="text" id="first_name" placeholder="e.g., John" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                <input type="text" id="last_name" placeholder="e.g., Doe" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input type="email" id="email" placeholder="e.g., john@example.com" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <select id="role" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">Select a role</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Staff">Staff</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input type="password" id="password" placeholder="Enter password" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+    </form>
+`;
 
-        if (!isAuthenticated) {
-            return <LoginPage login={login} />;
-        }
+const EditUserForm = (user) => `
+    <form id="edit-user-form" class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                <input type="text" id="first_name" value="${user.firstName}" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                <input type="text" id="last_name" value="${user.lastName}" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input type="email" id="email" value="${user.email}" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                <select id="role" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="Admin" ${user.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                    <option value="Manager" ${user.role === 'Manager' ? 'selected' : ''}>Manager</option>
+                    <option value="Staff" ${user.role === 'Staff' ? 'selected' : ''}>Staff</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                <input type="password" id="password" placeholder="Leave blank to keep current password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"/>
+            </div>
+        </div>
+    </form>
+`;
 
-        switch (currentPage) {
-            case 'dashboard':
-                return <Dashboard role={role} />;
-            case 'inventory':
-                return <InventoryManagement role={role} />;
-            case 'orders':
-                return <OrderManagement role={role} />;
-            case 'operations':
-                return <OperationsManagement role={role} />;
-            case 'reports':
-                return <ReportsAndAnalytics role={role} />;
-            case 'admin':
-                return <AdminUserManagement role={role} />;
-            default:
-                return <Dashboard role={role} />;
-        }
-    };
+const renderApp = () => {
+    const container = document.getElementById('app-container');
+    if (!container) return;
 
-    if (!isAuthenticated) {
-        return renderContent();
+    if (state.isLoading) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-screen w-full">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        `;
+        return;
     }
 
-    return (
-        <div className="flex h-screen bg-gray-100 font-sans">
-            {/* Sidebar Navigation */}
-            <div className="w-64 bg-indigo-800 p-4 flex flex-col justify-between shadow-2xl transition-all duration-300">
-                <div>
-                    <div className="text-white text-2xl font-bold py-4 mb-6 tracking-wide border-b border-indigo-700">
-                        WMS Central
-                    </div>
-                    <nav className="space-y-1">
-                        {filteredNavItems.map(item => (
-                            <NavButton
-                                key={item.id}
-                                icon={item.icon}
-                                label={item.label}
-                                isActive={currentPage === item.id}
-                                onClick={() => setCurrentPage(item.id)}
-                            />
-                        ))}
-                    </nav>
-                </div>
+    if (!state.isAuthenticated) {
+        container.innerHTML = LoginPage();
+        
+        document.getElementById('login-form').addEventListener('submit', handleLoginSubmit);
+        return;
+    }
+    
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard', roles: ['Admin', 'Manager', 'Staff'] },
+        { id: 'inventory', label: 'Inventory Management', icon: 'Package', roles: ['Admin', 'Manager', 'Staff'] },
+        { id: 'reports', label: 'Reports & Analytics', icon: 'FileText', roles: ['Admin', 'Manager'] },
+        { id: 'admin', label: 'User Management', icon: 'Users', roles: ['Admin'] },
+    ];
 
-                {/* Footer/Logout */}
-                <div className="pt-4 border-t border-indigo-700">
-                    <div className="text-indigo-200 text-sm mb-2 px-3">
-                        Logged in as: <span className="font-semibold">{role}</span>
+    const filteredNavItems = navItems.filter(item => item.roles.includes(state.role));
+    
+    let mainContentHTML = '';
+    switch (state.currentPage) {
+        case 'dashboard':
+            mainContentHTML = Dashboard();
+            break;
+        case 'inventory':
+            mainContentHTML = InventoryManagement();
+            break;
+        case 'reports':
+            mainContentHTML = ReportsAndAnalytics();
+            break;
+        case 'admin':
+            mainContentHTML = AdminUserManagement();
+            break;
+        default:
+            mainContentHTML = Dashboard();
+    }
+
+    const sidebarHTML = `
+        <div class="bg-indigo-800 flex flex-col justify-between shadow-2xl transition-all duration-300 flex-shrink-0 ${state.sidebarOpen ? 'w-64' : 'w-20'}">
+            <div>
+                <div class="flex items-center justify-between p-4 border-b border-indigo-700">
+                    <div class="text-white text-2xl font-bold tracking-wide ${state.sidebarOpen ? '' : 'hidden'}">
+                        WMS
                     </div>
-                    <NavButton
-                        icon={LogOut}
-                        label="Logout"
-                        isActive={false}
-                        onClick={logout}
-                    />
+                    <button 
+                        onclick="setState({ sidebarOpen: !state.sidebarOpen })"
+                        class="text-white hover:bg-indigo-700/50 p-2 rounded-lg transition duration-200"
+                    >
+                        ${state.sidebarOpen ? Icon('X', 20) : Icon('Menu', 20)}
+                    </button>
                 </div>
+                <nav class="space-y-1 p-4">
+                    ${filteredNavItems.map(item => `
+                        <button 
+                            onclick="setState({ currentPage: '${item.id}' })"
+                            class="flex items-center w-full px-4 py-3 my-1 transition-all duration-200 rounded-lg group ${state.currentPage === item.id ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-200 hover:bg-indigo-700/50 hover:text-white'}"
+                            title="${item.label}"
+                        >
+                            ${Icon(item.icon, 20)}
+                            <span class="font-medium text-sm ml-3 ${state.sidebarOpen ? '' : 'hidden'}">${item.label}</span>
+                        </button>
+                    `).join('')}
+                </nav>
             </div>
 
-            {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto p-4 md:p-8">
-                {renderContent()}
+            <div class="pt-4 border-t border-indigo-700 p-4">
+                <div class="text-indigo-200 text-sm mb-2 px-2 ${state.sidebarOpen ? '' : 'hidden'}">
+                    Logged in as: <span class="font-semibold">${state.role}</span>
+                </div>
+                <button 
+                    onclick="logout()"
+                    class="flex items-center w-full px-4 py-3 my-1 transition-all duration-200 rounded-lg group text-indigo-200 hover:bg-indigo-700/50 hover:text-white"
+                    title="Logout"
+                >
+                    ${Icon('LogOut', 20)}
+                    <span class="font-medium text-sm ml-3 ${state.sidebarOpen ? '' : 'hidden'}\">Logout</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    const mainLayoutHTML = `
+        <div class="flex w-full h-screen">
+            ${sidebarHTML}
+            <main class="flex-1 overflow-y-auto p-4 md:p-8">
+                ${mainContentHTML}
             </main>
         </div>
-    );
+    `;
+
+    container.innerHTML = mainLayoutHTML;
 };
 
-export default App;
+const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const errorDiv = document.getElementById('login-error');
+
+    errorDiv.classList.add('hidden');
+    
+    let userRole = null;
+    if (username === 'admin' && password === '123') {
+        userRole = 'Admin';
+    } else if (username === 'manager' && password === '123') {
+        userRole = 'Manager';
+    } else if (username === 'staff' && password === '123') {
+        userRole = 'Staff';
+    }
+    
+    if (userRole) {
+        login(userRole);
+    } else {
+        errorDiv.innerHTML = 'Invalid credentials. Try "admin", "manager", or "staff" with password "123".';
+        errorDiv.classList.remove('hidden');
+    }
+};
+
+
+window.onload = () => {
+    renderApp();
+};
